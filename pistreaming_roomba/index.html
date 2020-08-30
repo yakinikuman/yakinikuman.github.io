@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Pistreaming Roomba</title>
+  </head>
+  <body>
+    <h1>
+      <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    </h1>
+    <p>
+      <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    </p>
+    <h1>Pistreaming Roomba<br>
+    </h1>
+    This project will allow you to convert your Roomba into a mobile
+    camera bot, controllable from a web browser.&nbsp; <br>
+    <br>
+    <div align="center"><img src="005_mounted_pi_annotated.jpg" alt=""
+        width="960" height="540"><br>
+    </div>
+    <div align="center">
+      <h5>The final product: Raspberry Pi mounted on Roomba</h5>
+      <br>
+      <br>
+      <img src="008_pistreaming_roomba_in_action.png" alt="" width="683"
+        height="384"><br>
+      <h5>Screenshot from web browser, displaying Pistreaming Roomba's
+        video and control buttons</h5>
+    </div>
+    <h2>Hardware</h2>
+    <ul>
+      <li>A Roomba supporting the <a
+href="https://www.irobotweb.com/~/media/MainSite/PDFs/About/STEM/Create/iRobot_Roomba_600_Open_Interface_Spec.pdf">iRobot
+
+          Open Interface</a> (mine is a 655)<br>
+      </li>
+      <li>Raspberry Pi equipped with wifi and a USB-A port (I used a
+        model 3B)<br>
+      </li>
+      <li>Raspberry Pi camera</li>
+      <li><a
+href="https://www.amazon.com/gp/product/B082VKP2T4/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&amp;psc=1">USB-to-TTL
+
+          adapter</a><br>
+      </li>
+      <li><a
+          href="https://www.showmecables.com/mini-7-pin-din-male-solder-connector">7
+          pin Mini-DIN connector</a></li>
+      <li><a
+href="https://pyrodrone.com/products/iflight-micro-2-8s-bec-5v-12v-output">5V
+
+          voltage regulator</a><br>
+      </li>
+      <li>Micro USB male connector (I just cut a cable I had on hand)</li>
+      <li>JST-PH connector male-female pair</li>
+    </ul>
+    <p><br>
+    </p>
+    <h2>Talking with Roomba</h2>
+    <p>iRobot, the maker of Roomba, seem to be very open to the idea of
+      their products being used for academic or "hacker" projects.&nbsp;
+      They provide a serial API, the <a
+href="https://www.irobotweb.com/~/media/MainSite/PDFs/About/STEM/Create/iRobot_Roomba_600_Open_Interface_Spec.pdf">Open
+
+        Interface</a>, which makes it very easy to control from your own
+      microcontroller.&nbsp; And the DIN connector used to interface
+      with the Roomba is present on nearly all models.<br>
+    </p>
+    <div align="center"><img src="008_din_connector.jpg" alt=""
+        width="671" height="367"><br>
+      <h5>The DIN connector spec</h5>
+    </div>
+    <p>Some key notes about the DIN connector, with respect to
+      connecting a Raspberry Pi:<br>
+      <br>
+    </p>
+    <ul>
+      <li>The Vpwr is the Roomba's battery voltage.&nbsp; For my Roomba,
+        I measured this at around 13V.&nbsp; The Pi requires either 5V
+        or 3.3V power.&nbsp; I decided to power the pi via the micro USB
+        port, which wants 5V.&nbsp; To get there, I put a voltage
+        regulator in between the Roomba's 13V and the micro USB powering
+        the Pi.</li>
+      <ul>
+        <li>If you'd rather, you could always power the Pi from an
+          external source, such as a USB power bank.&nbsp; Then you
+          wouldn't need a voltage regulator or Roomba's power at all.</li>
+      </ul>
+      <li>The serial (RXD, TXD) logic levels coming out of the Roomba
+        are 5V, whereas the Pi's logic level is 3.3V.&nbsp; Now, the
+        Pi's 3.3V signals should be readable by the Roomba.&nbsp; But,
+        the reverse isn't true -- the Roomba's 5V logic could damage the
+        Pi's 3.3V pins.&nbsp; I figured a good way around this would be
+        to use a USB-to-TTL adapter which accepts 5V logic levels.<br>
+      </li>
+      <ul>
+        <li>It may be possible to only wire up the Pi-to-Roomba serial
+          connection (Pi's TX to Roomba's RX), then you probably
+          wouldn't need to worry about logic levels, since usually 5V
+          logic level circuits will read 3.3V logic levels just
+          fine.&nbsp; In this case you wouldn't need the USB-to-TTL
+          adapter; just wire directly to the Pi's TX UART pin.&nbsp; I
+          haven't test this, however.</li>
+      </ul>
+    </ul>
+    <p>Once you have the TX and RX wired up, there are several
+      easy-to-use libraries available on github (and probably elsewhere)
+      for communicating using the Open Interface.&nbsp; I found a Python
+      based library called <a
+        href="https://github.com/AtsushiSakai/PyRoombaAdapter">PyRoombaAdapter</a>
+      which worked out well for me, and so is used in this project.<br>
+    </p>
+    <p><br>
+    </p>
+    <h2>Remote Power-On</h2>
+    <p>One thing I noticed in my initial testing with controlling Roomba
+      with the Open Interface is that it's possible for Roomba to be in
+      a Power Off state.&nbsp; In this state, it isn't listening on the
+      Open Interface and so won't respond to any commands from the
+      Pi.&nbsp; It enters this state after a period of time doing
+      nothing (probably to save battery life) or it can be manually
+      triggered over the Open Interface.&nbsp; (It doesn't appear to
+      enter this state while sitting at its charging dock,
+      however.)&nbsp; The only way to power Roomba back on is to press
+      its "Clean" button.</p>
+    <p>For my project, I wanted to be able to fully control Roomba,
+      including power on.&nbsp; So, I added some extra wiring to trigger
+      the "Clean" button push.&nbsp; After i pulled off my Roomba'
+      cover, I noted that the button in question, marked "SW5",
+      functioned by momentarily connecting the contact points on either
+      side.&nbsp; One side is battery voltage (13V) and the other side
+      is usually ground.<br>
+    </p>
+    <div align="center"><img src="002_roomba_button.jpg" alt=""
+        width="960" height="540"><br>
+      <h5>Roomba under the hood</h5>
+      <br>
+      <div align="left">Fortunately, I found that the SW5 button will
+        trigger even if momentarily hit with a voltage much smaller than
+        13V -- in fact 3.3V from one of the Pi's GPIO pins will
+        work.&nbsp; So, I soldered a wire from the SW5 button to a
+        JST-PH female connector which I hot-glued just above the DIN
+        connector.&nbsp; (It would have been much slicker to utilize one
+        of the other port on the DIN connector for this - for instance,
+        there are two power outs and two grounds, where you only really
+        need one of each.&nbsp; But this would require desoldering the
+        DIN connector from the Roomba board ... I didn't have a spare
+        and was concerned about screwing it up, so did it with a new
+        connector all together.)<br>
+        <br>
+        <div align="center"><img src="004_hot_glued_connector.jpg"
+            alt="" width="960" height="540"><br>
+        </div>
+      </div>
+      <br>
+      <h5>Roomba "Clean" button trigger wire<br>
+      </h5>
+      <div align="left">Before putting Roomba' cover back on, I cut out
+        a hole for the connectors.&nbsp; I drilled a 1/2" hole for the
+        DIN connector, then carved out a hole for the JST-PH with a
+        Dremel.<br>
+        <br>
+        <div align="center"><img src="007_hole_in_cover.jpg" alt=""
+            width="960" height="540"><br>
+          <br>
+          <h5>Hole in Roomba cover<br>
+          </h5>
+          <div align="left">The only other Roomba modification I made
+            was to add a strip of velcro to attach the Pi.&nbsp; The
+            modifications I did don't prevent Roomba from being used
+            normally.<br>
+          </div>
+          <div align="left"><br>
+            <div align="center"><img src="006_wiring_closeup.jpg" alt=""
+                width="960" height="540"><br>
+              <h5>Wiring closeup</h5>
+              <p align="left">The only other thing to note is the extra,
+                short green wire I added to the unused port of the
+                JST-PH connector.&nbsp; I added this just to help when
+                pushing it in and pulling it out.&nbsp; It's kind of far
+                down there!<br>
+                <br>
+              </p>
+              <h2 align="left">Pi Connections</h2>
+              <p align="left">Connecting to the Pi is fairly
+                straightforward.&nbsp; <br>
+              </p>
+              <p align="left">Power the pi via the Micro USB cable
+                (which you'll need to attach to the 5V output and ground
+                of the 5V voltage regulator).&nbsp; <br>
+              </p>
+              <p align="left">Plug in the USB-to-TTL adapter to the Pi's
+                USB port.&nbsp; My USB-to-TTL adapter had a jumper to
+                select either 3.3V or 5V logic; set it to 5V.&nbsp; Make
+                sure you connect the adapter's RX to Roomba's TX, and
+                adapter's TX to Roomba's RX.<br>
+              </p>
+              <p align="left">For the "Clean" button trigger, connect to
+                a GPIO pin which is normally low.&nbsp; I believe you
+                can set this up for any GPIO pin, but I just checked one
+                that was already low by default, GPIO 18.&nbsp; The
+                software will momentarily set this pin high (3.3V) and
+                then low again, which triggers a button push response
+                from Roomba.<br>
+                <br>
+              </p>
+              <h2 align="left">Software</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div align="left">See the <a
+href="https://github.com/yakinikuman/pistreaming_roomba/blob/master/README.md">github's
+          Readme</a> for a full description of the software.&nbsp; I
+        started with the <a
+          href="https://github.com/waveform80/pistreaming">Pistreaming
+          project</a>, then added on Roomba control stuff.<br>
+        <br>
+        For extra credit, sign up for a dynamic DNS service (like <a
+          href="https://www.noip.com/">No-ip</a>) and set up port
+        forwarding on your router for ssh (usually port 22) and
+        pistreaming's http server and websocket server (8082 and 8084 in
+        the default code).&nbsp; Now you have a Roomba equipped with
+        streaming video which you can control over the internet!&nbsp;
+        Go ahead and have some strangers vacuum up your house!<br>
+      </div>
+      <br>
+    </div>
+    <h2>Issues</h2>
+    <p>After further testing, it seems that even while docked, it is
+      possible for the Pi to completely drain Roomba's battery.&nbsp;
+      Since my initial goal was to leave the Pi always on (and kick off
+      pistreaming_roomba as desired to get a mobile security cam), this
+      isn't such a good finding.&nbsp; I suspect the Roomba stops
+      charging once it reaches full battery voltage, and thereafter
+      doesn't check if it needs to start charging again.&nbsp;
+      Meanwhile, a connected Pi drains the battery...&nbsp; If you want
+      to keep the Pi on for long periods of time, it might be necessary
+      to periodically turn on Roomba and do whatever action is needed to
+      trigger a restart to the charging cycle.<br>
+    </p>
+    <ul>
+      <ul>
+      </ul>
+    </ul>
+    <ul>
+    </ul>
+    <br>
+  </body>
+</html>
